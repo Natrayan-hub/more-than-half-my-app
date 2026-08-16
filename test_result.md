@@ -182,7 +182,7 @@ frontend:
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 1
+  test_sequence: 2
 
 test_plan:
   current_focus:
@@ -202,3 +202,11 @@ agent_communication:
       Sign-in path should skip onboarding straight to Today. Sign out via More tab.
       Permissions step records intents only (OS prompts deferred to first use by design).
       Health/Social cards on Today are MOCK by design (labeled Sample).
+  - agent: "testing"
+    message: >
+      Smoke test completed successfully. App loads at http://localhost:3000 and renders the
+      Welcome onboarding screen (S1) as expected for unauthenticated users. No blocking errors.
+      Console shows expected 401s for /api/tasks and /api/health/entries (correct behavior for
+      unauth state). Known cosmetic warnings about nested buttons present but harmless.
+      Services confirmed running: mongodb (uptime 2:48), backend (2:46), expo (2:03).
+      Ready for full onboarding flow testing.
