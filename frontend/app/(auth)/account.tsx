@@ -1,11 +1,14 @@
 // S2 — Account setup: sign up / sign in (JWT auth per security spec).
 // Sign-up continues the flow; sign-in (returning account) goes straight in.
-import { Feather } from "@expo/vector-icons";
+import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View,
+} from "react-native";
 
 import { ApiError } from "@/src/api/client";
+import { startGoogleAuth } from "@/src/features/auth/google";
 import { OnboardingScaffold } from "@/src/features/onboarding/OnboardingScaffold";
 import { useAuth } from "@/src/providers/AuthProvider";
 import { useTheme } from "@/src/theme";
@@ -16,6 +19,7 @@ function errorMessage(e: unknown): string {
   if (e instanceof ApiError) {
     if (e.code === "EMAIL_TAKEN") return "That email is already registered — try signing in.";
     if (e.code === "AUTH_INVALID_CREDENTIALS") return "Wrong email or password.";
+    if (e.code === "GOOGLE_AUTH_FAILED") return "Google sign-in failed — please try again.";
     if (e.code === "NETWORK_ERROR") return "You're offline — check your connection and try again.";
     return e.message;
   }
@@ -25,7 +29,7 @@ function errorMessage(e: unknown): string {
 export default function AccountScreen() {
   const { theme } = useTheme();
   const router = useRouter();
-  const { signUp, signIn } = useAuth();
+  const { signUp, signIn, continueWithGoogle } = useAuth();
   const params = useLocalSearchParams<{ mode?: string }>();
 
   const [mode, setMode] = useState<"signup" | "signin">(
@@ -36,11 +40,13 @@ export default function AccountScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [touched, setTouched] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const emailValid = EMAIL_RE.test(email.trim());
   const passwordValid = password.length >= 8;
   const formValid = emailValid && passwordValid;
+  const busy = loading || googleLoading;
 
   const fieldErrors = useMemo(() => {
     if (!touched) return { email: null, password: null };
@@ -52,7 +58,7 @@ export default function AccountScreen() {
 
   const submit = async () => {
     setTouched(true);
-    if (!formValid || loading) return;
+    if (!formValid || busy) return;
     setLoading(true);
     setError(null);
     try {
@@ -67,6 +73,26 @@ export default function AccountScreen() {
       setError(errorMessage(e));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGoogle = async () => {
+    if (busy) return;
+    setError(null);
+    setGoogleLoading(true);
+    try {
+      const sessionId = await startGoogleAuth();
+      if (Platform.OS === "web") return; // navigating away; resumes on reload
+      if (!sessionId) return; // user cancelled — no error to show
+      const isNewUser = await continueWithGoogle(sessionId);
+      if (isNewUser) {
+        router.push("/(auth)/privacy");
+      }
+      // Returning account → root guard redirects to Today.
+    } catch (e) {
+      setError(errorMessage(e));
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -92,7 +118,7 @@ export default function AccountScreen() {
       }
       primaryLabel={mode === "signup" ? "Create account" : "Sign in"}
       onPrimary={submit}
-      primaryDisabled={!formValid}
+      primaryDisabled={!formValid || googleLoading}
       loading={loading}
       skipLabel={mode === "signup" ? "I already have an account" : "New here? Create an account"}
       onSkip={() => {
@@ -115,6 +141,42 @@ export default function AccountScreen() {
           </View>
         ) : null}
 
+        <TouchableOpacity
+          onPress={handleGoogle}
+          disabled={busy}
+          accessibilityRole="button"
+          accessibilityLabel="Continue with Google"
+          accessibilityState={{ disabled: busy }}
+          style={[
+            styles.googleButton,
+            {
+              borderColor: theme.colors.border.strong,
+              backgroundColor: theme.colors.surface.default,
+              borderRadius: theme.radius.sm,
+              opacity: busy && !googleLoading ? 0.6 : 1,
+            },
+          ]}
+        >
+          {googleLoading ? (
+            <ActivityIndicator color={theme.colors.text.primary} />
+          ) : (
+            <>
+              <MaterialCommunityIcons name="google" size={18} color="#4285F4" />
+              <Text style={[theme.type.label, { color: theme.colors.text.primary, fontSize: 16 }]}>
+                Continue with Google
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
+
+        <View style={styles.dividerRow}>
+          <View style={[styles.dividerLine, { backgroundColor: theme.colors.border.default }]} />
+          <Text style={[theme.type.caption, { color: theme.colors.text.tertiary }]}>
+            or continue with email
+          </Text>
+          <View style={[styles.dividerLine, { backgroundColor: theme.colors.border.default }]} />
+        </View>
+
         <View style={{ gap: theme.space["2xs"] }}>
           <Text style={[theme.type.label, { color: theme.colors.text.secondary }]}>Email</Text>
           <TextInput
@@ -127,6 +189,7 @@ export default function AccountScreen() {
             autoCapitalize="none"
             autoComplete="email"
             accessibilityLabel="Email address"
+            editable={!busy}
             style={inputStyle(!!fieldErrors.email)}
           />
           {fieldErrors.email ? (
@@ -149,6 +212,7 @@ export default function AccountScreen() {
               autoCapitalize="none"
               autoComplete={mode === "signup" ? "new-password" : "current-password"}
               accessibilityLabel="Password"
+              editable={!busy}
               style={inputStyle(!!fieldErrors.password)}
               onSubmitEditing={submit}
             />
@@ -198,4 +262,14 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   flex: { flex: 1 },
+  googleButton: {
+    height: 52,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    borderWidth: 1.5,
+  },
+  dividerRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  dividerLine: { flex: 1, height: 1 },
 });

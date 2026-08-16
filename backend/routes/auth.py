@@ -1,4 +1,6 @@
-"""Auth routes (API design B.1): register, login, refresh (rotating), logout."""
+"""Auth routes (API design B.1): register, login, refresh (rotating), logout,
+Google session exchange (Emergent-managed OAuth)."""
+import httpx
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, EmailStr, Field
 
@@ -8,6 +10,8 @@ from core.seed import seed_starter_tasks
 from models import Preference, Profile, User
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+EMERGENT_SESSION_DATA_URL = "https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data"
 
 
 class Credentials(BaseModel):
@@ -24,6 +28,14 @@ class AuthResponse(BaseModel):
     refresh_token: str
     token_type: str = "bearer"
     user: dict
+
+
+class GoogleSessionRequest(BaseModel):
+    session_id: str = Field(min_length=1)
+
+
+class GoogleAuthResponse(AuthResponse):
+    is_new_user: bool
 
 
 def _public_user(user: User) -> dict:
@@ -81,3 +93,49 @@ async def refresh(body: RefreshRequest):
 @router.post("/logout", status_code=204)
 async def logout(body: RefreshRequest):
     await security.revoke_refresh(body.refresh_token)
+
+
+@router.post("/session", response_model=GoogleAuthResponse)
+async def google_session(body: GoogleSessionRequest):
+    """Exchange a one-time Emergent `session_id` for this app's own JWT pair.
+
+    The frontend never talks to Emergent directly — it POSTs the session_id
+    here exactly once, we call Emergent's session-data endpoint with it, then
+    mint our normal access/refresh tokens so Google-authenticated users flow
+    through the same token lifecycle (rotation, revocation) as password users.
+    """
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        try:
+            resp = await client.get(
+                EMERGENT_SESSION_DATA_URL,
+                headers={"X-Session-ID": body.session_id},
+            )
+        except httpx.HTTPError:
+            raise HTTPException(status_code=401, detail="GOOGLE_AUTH_FAILED")
+
+    if resp.status_code != 200:
+        raise HTTPException(status_code=401, detail="GOOGLE_AUTH_FAILED")
+
+    data = resp.json()
+    email = (data.get("email") or "").strip().lower()
+    if not email:
+        raise HTTPException(status_code=401, detail="GOOGLE_AUTH_FAILED")
+    name = data.get("name") or email.split("@")[0].capitalize()
+    picture = data.get("picture")
+
+    existing = await database.users.find_one({"email": email}, {"_id": 0})
+    is_new_user = existing is None
+
+    if existing:
+        user = User(**existing)
+    else:
+        user = User(email=email, auth_provider="google", email_verified=True)
+        await database.users.insert_one(user.model_dump())
+        profile = Profile(id=user.id, user_id=user.id, display_name=name, avatar_url=picture)
+        preference = Preference(id=user.id, user_id=user.id)
+        await database.profiles.insert_one(profile.model_dump())
+        await database.preferences.insert_one(preference.model_dump())
+        await seed_starter_tasks(user.id)
+
+    pair = await security.issue_pair(user.id)
+    return {**pair, "user": _public_user(user), "is_new_user": is_new_user}

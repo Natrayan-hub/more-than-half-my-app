@@ -27,6 +27,23 @@ export async function loginAccount(email: string, password: string): Promise<Use
   return res.user;
 }
 
+export interface GoogleSessionResponse {
+  access_token: string;
+  refresh_token: string;
+  user: User;
+  is_new_user: boolean;
+}
+
+export async function exchangeGoogleSession(sessionId: string): Promise<GoogleSessionResponse> {
+  const res = await api.post<GoogleSessionResponse>(
+    "/auth/session",
+    { session_id: sessionId },
+    false,
+  );
+  await saveTokens(res.access_token, res.refresh_token);
+  return res;
+}
+
 export async function logoutAccount(): Promise<void> {
   const refresh = await storage.secureGet<string>(REFRESH_TOKEN_KEY, "");
   if (refresh) {

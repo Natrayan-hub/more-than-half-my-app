@@ -38,6 +38,10 @@ function RootNavigator() {
       router.replace("/(auth)/welcome");
     } else if (status === "authenticated" && onboardingComplete && inAuthGroup) {
       router.replace("/");
+    } else if (status === "authenticated" && !onboardingComplete && !inAuthGroup) {
+      // Covers the Google web redirect landing back on "/" for a brand-new
+      // account — same continuation point as post-signup on native.
+      router.replace("/(auth)/privacy");
     }
   }, [status, onboardingComplete, segments, router]);
 

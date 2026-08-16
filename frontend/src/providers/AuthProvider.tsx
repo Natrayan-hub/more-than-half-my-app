@@ -2,13 +2,14 @@
 // sign-up/sign-in/sign-out, the user's profile, and the onboarding-complete
 // flag that drives new-vs-returning routing in the root layout.
 import React, {
-  createContext, useCallback, useContext, useEffect, useMemo, useState,
+  createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
 } from "react";
 
 import { ApiError, REFRESH_TOKEN_KEY, setOnUnauthorized } from "@/src/api/client";
 import {
-  fetchMe, loginAccount, logoutAccount, Me, registerAccount,
+  exchangeGoogleSession, fetchMe, loginAccount, logoutAccount, Me, registerAccount,
 } from "@/src/api/auth";
+import { checkIncomingSessionId, clearWebSessionParam } from "@/src/features/auth/google";
 import { storage } from "@/src/utils/storage";
 import type { Profile, User } from "@/src/types/models";
 
@@ -24,6 +25,7 @@ interface AuthContextValue {
   onboardingComplete: boolean;
   signUp: (email: string, password: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
+  continueWithGoogle: (sessionId: string) => Promise<boolean>; // resolves isNewUser
   signOut: () => Promise<void>;
   completeOnboarding: () => Promise<void>;
   setProfile: (profile: Profile) => void;
@@ -44,10 +46,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     storage.setItem(ME_CACHE_KEY, JSON.stringify(me));
   }, []);
 
-  // Bootstrap: returning users with a valid (or refreshable) session skip
-  // onboarding; everyone else lands on Welcome.
+  // Guards against exchanging the same Emergent session_id twice — a hot
+  // deep-link and a hot-mount check can both surface the same value.
+  const processedSessionIds = useRef<Set<string>>(new Set());
+
+  const applyGoogleSession = useCallback(async (sessionId: string): Promise<boolean> => {
+    if (processedSessionIds.current.has(sessionId)) return !onboardingComplete;
+    processedSessionIds.current.add(sessionId);
+
+    const result = await exchangeGoogleSession(sessionId); // saves tokens
+    const me = await fetchMe();
+    applyMe(me);
+    if (!result.is_new_user) {
+      // Returning account → straight to the app (same as password sign-in).
+      await storage.setItem(ONBOARDING_KEY, true);
+      setOnboardingComplete(true);
+    }
+    setStatus("authenticated");
+    clearWebSessionParam(); // no-op on native
+    return result.is_new_user;
+  }, [applyMe, onboardingComplete]);
+
+  // Bootstrap: an incoming Google redirect (session_id in the URL/deep link)
+  // takes priority over any stored session — it's the freshest signal and
+  // the session_id is one-time-use, so it must be handled before anything
+  // else races to read it. Otherwise, returning users with a valid (or
+  // refreshable) session skip onboarding; everyone else lands on Welcome.
   useEffect(() => {
     (async () => {
+      try {
+        const incomingSessionId = await checkIncomingSessionId();
+        if (incomingSessionId) {
+          await applyGoogleSession(incomingSessionId);
+          return;
+        }
+      } catch {
+        // Invalid/expired session_id — fall through to normal bootstrap.
+      }
+
       const [refreshToken, onboarded] = await Promise.all([
         storage.secureGet<string>(REFRESH_TOKEN_KEY, ""),
         storage.getItem<boolean>(ONBOARDING_KEY, false),
@@ -76,7 +112,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
     })();
-  }, [applyMe]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount only
+  }, []);
 
   const signOut = useCallback(async () => {
     await logoutAccount();
@@ -137,10 +174,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<AuthContextValue>(
     () => ({
       status, user, profile, onboardingComplete,
-      signUp, signIn, signOut, completeOnboarding, setProfile, refreshMe,
+      signUp, signIn, continueWithGoogle: applyGoogleSession, signOut,
+      completeOnboarding, setProfile, refreshMe,
     }),
     [status, user, profile, onboardingComplete,
-     signUp, signIn, signOut, completeOnboarding, setProfile, refreshMe],
+     signUp, signIn, applyGoogleSession, signOut, completeOnboarding, setProfile, refreshMe],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
