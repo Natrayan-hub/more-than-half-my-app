@@ -42,6 +42,7 @@ async def ensure_indexes() -> None:
     await notifications.create_index([("user_id", 1), ("created_at", -1)])
     await sync_oplog.create_index([("user_id", 1), ("server_seq", 1)])
     await audit_log.create_index([("user_id", 1), ("created_at", -1)])
+    await suggestions.create_index([("user_id", 1), ("status", 1), ("created_at", -1)])
 
 
 async def close() -> None:

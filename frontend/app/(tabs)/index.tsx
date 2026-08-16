@@ -8,6 +8,7 @@ import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native
 
 import { Feather } from "@expo/vector-icons";
 import { useToast } from "@/src/components/Toast";
+import { acceptSuggestion, dismissSuggestion, fetchPendingSuggestion } from "@/src/features/ai/api";
 import {
   addWater, completeTask, fetchTodayTasks, fetchWaterToday, reopenTask,
 } from "@/src/features/today/api";
@@ -17,13 +18,13 @@ import { SuggestionCard } from "@/src/features/today/cards/SuggestionCard";
 import { TasksCard } from "@/src/features/today/cards/TasksCard";
 import { GLASS_ML, WaterCard } from "@/src/features/today/cards/WaterCard";
 import {
-  getMockHealthSnapshot, getMockSocialSnapshot, getPlaceholderSuggestion,
+  getMockHealthSnapshot, getMockSocialSnapshot,
 } from "@/src/features/today/mocks";
 import { TodayHeader } from "@/src/features/today/TodayHeader";
 import { useCardData } from "@/src/features/today/useCardData";
 import { useAuth } from "@/src/providers/AuthProvider";
 import { useTheme } from "@/src/theme";
-import type { HealthEntry, Task } from "@/src/types/models";
+import type { HealthEntry, Suggestion, Task } from "@/src/types/models";
 
 export default function TodayScreen() {
   const { theme } = useTheme();
@@ -31,19 +32,17 @@ export default function TodayScreen() {
   const router = useRouter();
   const toast = useToast();
   const [refreshing, setRefreshing] = useState(false);
-  const [suggestionState, setSuggestionState] = useState<"pending" | "accepted" | "dismissed">(
-    "pending",
-  );
 
-  // Real data (backend) — tasks + water logs
+  // Real data (backend) — tasks + water logs + AI suggestion (ChatGPT,
+  // server-side generated — see backend/core/suggestion_engine.py)
   const tasksData = useCardData<Task[]>("today.tasks", fetchTodayTasks);
   const waterData = useCardData<HealthEntry[]>("today.water", fetchWaterToday);
+  const suggestionData = useCardData<Suggestion | null>("today.suggestion", fetchPendingSuggestion);
 
   // Local/mock data — health snapshot (local-only HealthCache shape, S34) and
-  // social stats (SocialStat shape); placeholder AI suggestion derived from it.
+  // social stats (SocialStat shape).
   const health = useMemo(() => getMockHealthSnapshot(), []);
   const social = useMemo(() => getMockSocialSnapshot(), []);
-  const suggestion = useMemo(() => getPlaceholderSuggestion(health), [health]);
 
   const waterTotal = waterData.data
     ? waterData.data.reduce((sum, entry) => sum + entry.value, 0)
@@ -53,9 +52,9 @@ export default function TodayScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([tasksData.refetch(), waterData.refetch()]);
+    await Promise.all([tasksData.refetch(), waterData.refetch(), suggestionData.refetch()]);
     setRefreshing(false);
-  }, [tasksData, waterData]);
+  }, [tasksData, waterData, suggestionData]);
 
   const handleToggleTask = useCallback(
     (task: Task) => {
@@ -107,16 +106,27 @@ export default function TodayScreen() {
   }, [waterData, toast]);
 
   const handleAcceptSuggestion = useCallback(() => {
-    // Placeholder for POST /ai/suggestions/{id}/accept — same interaction
-    // contract as the real AI service (confirm → apply → feedback).
-    setSuggestionState("accepted");
-    toast.show({ message: "Noted — your day is adjusted" });
-  }, [toast]);
+    const suggestion = suggestionData.data;
+    if (!suggestion) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    suggestionData.mutate(() => null); // optimistic — card leaves immediately
+    acceptSuggestion(suggestion.id)
+      .then((result) => {
+        toast.show({ message: "Done — your day is adjusted" });
+        if (result.changed?.task) tasksData.refetch(); // reflect a rescheduled task
+      })
+      .catch(() => {
+        toast.show({ message: "Couldn't apply — try again" });
+        suggestionData.refetch();
+      });
+  }, [suggestionData, tasksData, toast]);
 
   const handleDismissSuggestion = useCallback(() => {
-    // Placeholder for POST /ai/suggestions/{id}/dismiss (writes AI memory).
-    setSuggestionState("dismissed");
-  }, []);
+    const suggestion = suggestionData.data;
+    if (!suggestion) return;
+    suggestionData.mutate(() => null);
+    dismissSuggestion(suggestion.id).catch(() => suggestionData.refetch());
+  }, [suggestionData]);
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.colors.bg.canvas }]}>
@@ -151,9 +161,9 @@ export default function TodayScreen() {
         }
         showsVerticalScrollIndicator={false}
       >
-        {suggestion && suggestionState === "pending" ? (
+        {suggestionData.data ? (
           <SuggestionCard
-            suggestion={suggestion}
+            suggestion={suggestionData.data}
             onAccept={handleAcceptSuggestion}
             onDismiss={handleDismissSuggestion}
           />
