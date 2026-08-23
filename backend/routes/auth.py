@@ -1,13 +1,16 @@
 """Auth routes (API design B.1): register, login, refresh (rotating), logout,
 Google session exchange (Emergent-managed OAuth)."""
+from typing import Optional
+
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr, Field
 
 from core import db as database
 from core import security
 from core.seed import seed_starter_tasks
 from models import Preference, Profile, User
+from routes.deps import get_current_user_id
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -84,10 +87,10 @@ async def login(body: Credentials):
 @router.post("/refresh")
 async def refresh(body: RefreshRequest):
     try:
-        user_id = await security.consume_refresh(body.refresh_token)
+        user_id, family = await security.consume_refresh(body.refresh_token)
     except ValueError as exc:
         raise HTTPException(status_code=401, detail=str(exc))
-    return await security.issue_pair(user_id)
+    return await security.issue_pair(user_id, family=family)
 
 
 @router.post("/logout", status_code=204)
@@ -139,3 +142,26 @@ async def google_session(body: GoogleSessionRequest):
 
     pair = await security.issue_pair(user.id)
     return {**pair, "user": _public_user(user), "is_new_user": is_new_user}
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: Optional[str] = None
+    new_password: str = Field(min_length=8, max_length=128)
+
+
+@router.post("/change-password", status_code=204)
+async def change_password(
+    body: ChangePasswordRequest, user_id: str = Depends(get_current_user_id),
+):
+    """Settings (S24) password change. Google-only accounts (no
+    password_hash yet) can SET a first password without a current one;
+    accounts that already have one must prove it first."""
+    user_doc = await database.users.find_one({"id": user_id}, {"_id": 0, "password_hash": 1})
+    if not user_doc:
+        raise HTTPException(status_code=404, detail="USER_NOT_FOUND")
+    existing_hash = user_doc.get("password_hash")
+    if existing_hash:
+        if not body.current_password or not security.verify_password(body.current_password, existing_hash):
+            raise HTTPException(status_code=401, detail="AUTH_INVALID_CREDENTIALS")
+    new_hash = security.hash_password(body.new_password)
+    await database.users.update_one({"id": user_id}, {"$set": {"password_hash": new_hash}})

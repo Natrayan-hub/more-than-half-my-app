@@ -1,11 +1,14 @@
-// S23 — More hub (stub) + theme mode control so light/dark theming is
-// verifiable now; this control graduates to General Settings (S25) later.
+// S23 — More hub: real Settings home. Profile summary + grouped rows
+// (Notifications, Privacy, Backup, Automations, Integrations) navigating
+// to real sub-screens, plus in-place Smart suggestions toggle and
+// system/light/dark theme control (both already fully real).
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 
 import { api } from "@/src/api/client";
+import { SettingsGroup, SettingsRow } from "@/src/components/SettingsRow";
 import { useToast } from "@/src/components/Toast";
-import { StubScreen } from "@/src/components/StubScreen";
 import { useAuth } from "@/src/providers/AuthProvider";
 import { ThemeMode, useTheme } from "@/src/theme";
 import type { Profile } from "@/src/types/models";
@@ -14,6 +17,7 @@ const MODES: ThemeMode[] = ["system", "light", "dark"];
 
 export default function MoreScreen() {
   const { theme, mode, setMode } = useTheme();
+  const router = useRouter();
   const { user, profile, setProfile, signOut } = useAuth();
   const toast = useToast();
   const [aiSaving, setAiSaving] = useState(false);
@@ -30,131 +34,120 @@ export default function MoreScreen() {
     }
   };
 
-  return (
-    <StubScreen
-      title="More"
-      icon="grid"
-      description="Profile, integrations, privacy center, backup, and settings live here."
-    >
-      <View
-        style={[
-          styles.aiRow,
-          {
-            backgroundColor: theme.colors.surface.aiSubtle,
-            borderRadius: theme.radius.md,
-            borderWidth: 1,
-            borderColor: `${theme.colors.ai.default}66`,
-            marginTop: theme.space.lg,
-          },
-        ]}
-      >
-        <View style={styles.aiText}>
-          <Text style={[theme.type.h4, { color: theme.colors.text.primary }]}>
-            Smart suggestions
-          </Text>
-          <Text style={[theme.type.caption, { color: theme.colors.ai.onSubtle }]}>
-            ChatGPT-powered nudges on Today — always explainable, never automatic.
-          </Text>
-        </View>
-        <Switch
-          value={profile?.ai_enabled ?? false}
-          onValueChange={handleToggleAi}
-          disabled={aiSaving}
-          trackColor={{ false: theme.colors.border.strong, true: theme.colors.ai.default }}
-          thumbColor="#FFFFFF"
-          accessibilityLabel="Enable smart suggestions"
-        />
-      </View>
+  const initial = (profile?.display_name || user?.email || "?").charAt(0).toUpperCase();
 
-      <View
-        style={[
-          styles.segmented,
-          {
-            backgroundColor: theme.colors.surface.sunken,
-            borderRadius: theme.radius.sm,
-            marginTop: theme.space.lg,
-          },
-        ]}
-      >
-        {MODES.map((m) => {
-          const active = mode === m;
-          return (
-            <TouchableOpacity
-              key={m}
-              onPress={() => setMode(m)}
-              accessibilityRole="button"
-              accessibilityLabel={`${m} theme`}
-              accessibilityState={{ selected: active }}
-              style={[
-                styles.segment,
-                active && [
-                  theme.elevation.e1,
-                  {
-                    backgroundColor: theme.colors.surface.default,
-                    borderRadius: theme.radius.sm - 2,
-                  },
-                ],
-              ]}
-            >
-              <Text
-                style={[
-                  theme.type.label,
-                  {
-                    color: active
-                      ? theme.colors.text.primary
-                      : theme.colors.text.secondary,
-                    textTransform: "capitalize",
-                  },
-                ]}
-              >
-                {m}
+  return (
+    <View style={[styles.screen, { backgroundColor: theme.colors.bg.canvas }]}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <Text style={[theme.type.h1, { color: theme.colors.text.primary, marginTop: theme.space.sm }]}>More</Text>
+
+        <View style={styles.profileRow}>
+          <View style={[styles.avatar, { backgroundColor: theme.colors.primary.default, borderRadius: theme.radius.full }]}>
+            <Text style={[theme.type.h3, { color: theme.colors.text.onPrimary }]}>{initial}</Text>
+          </View>
+          <View style={styles.flex}>
+            <Text style={[theme.type.h4, { color: theme.colors.text.primary }]} numberOfLines={1}>
+              {profile?.display_name || "Your account"}
+            </Text>
+            {user ? (
+              <Text style={[theme.type.caption, { color: theme.colors.text.secondary }]} numberOfLines={1}>
+                {user.email}
               </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-      <View style={{ marginTop: theme.space.lg, alignItems: "center", gap: theme.space.xs }}>
-        {user ? (
-          <Text style={[theme.type.caption, { color: theme.colors.text.tertiary }]}>
-            Signed in as {user.email}
-          </Text>
-        ) : null}
-        <TouchableOpacity
-          onPress={signOut}
-          accessibilityRole="button"
-          accessibilityLabel="Sign out"
-          style={styles.signOut}
+            ) : null}
+          </View>
+        </View>
+
+        <View
+          style={[
+            styles.aiRow,
+            {
+              backgroundColor: theme.colors.surface.aiSubtle,
+              borderRadius: theme.radius.md,
+              borderWidth: 1,
+              borderColor: `${theme.colors.ai.default}66`,
+            },
+          ]}
         >
-          <Text style={[theme.type.label, { color: theme.colors.error.text }]}>Sign out</Text>
-        </TouchableOpacity>
-      </View>
-    </StubScreen>
+          <View style={styles.aiText}>
+            <Text style={[theme.type.h4, { color: theme.colors.text.primary }]}>Smart suggestions</Text>
+            <Text style={[theme.type.caption, { color: theme.colors.ai.onSubtle }]}>
+              ChatGPT-powered nudges on Today — always explainable, never automatic.
+            </Text>
+          </View>
+          <Switch
+            value={profile?.ai_enabled ?? false}
+            onValueChange={handleToggleAi}
+            disabled={aiSaving}
+            trackColor={{ false: theme.colors.border.strong, true: theme.colors.ai.default }}
+            thumbColor="#FFFFFF"
+            accessibilityLabel="Enable smart suggestions"
+          />
+        </View>
+
+        <SettingsGroup title="Data & privacy">
+          <SettingsRow icon="shield" title="Privacy Center" subtitle="Local vs. cloud for each data type" onPress={() => router.push("/more/privacy")} />
+          <SettingsRow icon="bell" title="Notifications" subtitle="Reminders, AI nudges, digests" onPress={() => router.push("/more/notifications")} />
+          <SettingsRow icon="upload-cloud" title="Backup & storage" subtitle="Manual backup, frequency" onPress={() => router.push("/more/backup")} />
+        </SettingsGroup>
+
+        <SettingsGroup title="Automation & connections">
+          <SettingsRow icon="zap" title="Automations" subtitle="Gym reminders, focus mode, routines" onPress={() => router.push("/more/automations")} />
+          <SettingsRow icon="link" title="Integrations" subtitle="Health apps, calendar, Instagram" onPress={() => router.push("/more/integrations")} />
+          <SettingsRow icon="instagram" title="Social Stats" subtitle="Followers, reach, engagement" onPress={() => router.push("/more/social")} />
+        </SettingsGroup>
+
+        <SettingsGroup title="Appearance">
+          <View
+            style={[styles.segmented, { backgroundColor: theme.colors.surface.sunken, borderRadius: theme.radius.sm, margin: 10 }]}
+          >
+            {MODES.map((m) => {
+              const active = mode === m;
+              return (
+                <TouchableOpacity
+                  key={m}
+                  onPress={() => setMode(m)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${m} theme`}
+                  accessibilityState={{ selected: active }}
+                  style={[
+                    styles.segment,
+                    active && [theme.elevation.e1, { backgroundColor: theme.colors.surface.default, borderRadius: theme.radius.sm - 2 }],
+                  ]}
+                >
+                  <Text
+                    style={[
+                      theme.type.label,
+                      { color: active ? theme.colors.text.primary : theme.colors.text.secondary, textTransform: "capitalize" },
+                    ]}
+                  >
+                    {m}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </SettingsGroup>
+
+        <SettingsGroup>
+          <SettingsRow icon="log-out" title="Sign out" danger onPress={signOut} />
+        </SettingsGroup>
+
+        <Text style={[theme.type.caption, { color: theme.colors.text.tertiary, textAlign: "center", marginTop: 4 }]}>
+          LifeOS · v1.0.0
+        </Text>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  aiRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    padding: 16,
-    alignSelf: "stretch",
-  },
+  screen: { flex: 1 },
+  content: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 32, gap: 16 },
+  profileRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  avatar: { width: 52, height: 52, alignItems: "center", justifyContent: "center" },
+  flex: { flex: 1 },
+  aiRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16 },
   aiText: { flex: 1, gap: 4 },
-  segmented: {
-    flexDirection: "row",
-    padding: 3,
-    height: 40,
-    alignSelf: "stretch",
-  },
-  segment: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  signOut: {
-    minHeight: 44,
-    justifyContent: "center",
-    paddingHorizontal: 16,
-  },
+  segmented: { flexDirection: "row", padding: 3, height: 40 },
+  segment: { flex: 1, alignItems: "center", justifyContent: "center" },
 });

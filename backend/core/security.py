@@ -78,9 +78,11 @@ async def issue_pair(user_id: str, family: Optional[str] = None) -> dict:
     return {"access_token": access, "refresh_token": refresh, "token_type": "bearer"}
 
 
-async def consume_refresh(token: str) -> str:
-    """Validate + atomically rotate a refresh token. Returns user_id.
-    Raises ValueError('...code...') for the route to map to 401."""
+async def consume_refresh(token: str) -> tuple[str, str]:
+    """Validate + atomically rotate a refresh token. Returns (user_id, family)
+    — callers MUST pass family through to issue_pair() so the whole rotation
+    chain shares one family; otherwise reuse-detection can't cascade past the
+    first rotation. Raises ValueError('...code...') for the route to map to 401."""
     try:
         data = decode_jwt(token)
         if data.get("typ") != "refresh":
@@ -102,7 +104,7 @@ async def consume_refresh(token: str) -> str:
     )
     if not consumed:
         raise ValueError("TOKEN_INVALID")
-    return data["sub"]
+    return data["sub"], record["family"]
 
 
 async def revoke_refresh(token: str) -> None:

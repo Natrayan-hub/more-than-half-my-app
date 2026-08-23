@@ -120,12 +120,15 @@ export interface DetectedFields {
 export interface Document extends Syncable {
   title: string;
   category: DocumentCategory;
+  kind: "document" | "photo";
   tags: string[];
   detected_fields: DetectedFields;
   ocr_text?: string | null;
   expiry_reminder_task_id?: UUID | null;
   storage_policy: "cloud" | "local_only";
   size_bytes: number;
+  content_base64?: string | null;
+  thumb_base64?: string | null;
 }
 
 export interface DocumentPage {
@@ -153,6 +156,42 @@ export interface Integration {
   last_sync_at?: ISODate | null;
   last_error?: string | null;
   external_account?: string | null;
+}
+
+// GET /integrations — catalog merged with this user's connection state.
+export interface IntegrationCatalogItem {
+  provider: Provider;
+  label: string;
+  direction: "read" | "write" | "two_way";
+  blurb: string;
+  status: "connected" | "not_connected" | "error" | "expired" | "disconnected";
+  external_account?: string | null;
+  last_sync_at?: ISODate | null;
+}
+
+// ---- Automations --------------------------------------------------------------
+
+export type AutomationTriggerType = "time" | "location" | "calendar" | "task" | "health_threshold";
+export type AutomationActionType = "notification" | "focus_mode" | "open_feature";
+
+export interface AutomationTrigger {
+  type: AutomationTriggerType;
+  params: Record<string, unknown>;
+}
+
+export interface AutomationAction {
+  type: AutomationActionType;
+  params: Record<string, unknown>;
+}
+
+export interface Automation extends Syncable {
+  name: string;
+  trigger: AutomationTrigger;
+  action: AutomationAction;
+  enabled: boolean;
+  is_preset: boolean;
+  last_run_at?: ISODate | null;
+  last_run_status?: "success" | "failed" | null;
 }
 
 // ---- AI ---------------------------------------------------------------------
@@ -205,6 +244,16 @@ export interface DataControls {
   photos: "cloud" | "off";
 }
 
+export interface DisplayPrefs {
+  font_scale: number;
+  reduce_motion: boolean;
+}
+
+export interface BackupPrefs {
+  frequency: "manual" | "daily" | "weekly";
+  last_backup_at?: ISODate | null;
+}
+
 export interface Preference {
   id: UUID; // == user_id
   user_id: UUID;
@@ -216,9 +265,13 @@ export interface Preference {
     backup_alerts: "failures_only" | "all" | "off";
     weekly_recap: "in_app" | "push" | "email";
     quiet_hours: { start: string; end: string };
+    automation_alerts: boolean;
+    email_digests: boolean;
   };
   sync_prefs: { wifi_only: boolean; background: boolean };
   data_controls: DataControls;
+  display_prefs: DisplayPrefs;
+  backup_prefs: BackupPrefs;
   app_lock: { enabled: boolean; scope: "vault" | "app"; auto_lock_min: number };
   today_cards: { key: string; visible: boolean; pinned: boolean }[];
 }

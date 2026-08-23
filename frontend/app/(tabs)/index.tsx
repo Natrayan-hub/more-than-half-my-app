@@ -191,7 +191,7 @@ export default function TodayScreen() {
           onOpen={() => router.push("/health")}
         />
 
-        <SocialCard snapshot={social} />
+        <SocialCard snapshot={social} onOpen={() => router.push("/more/social")} />
       </ScrollView>
     </View>
   );

@@ -1,0 +1,65 @@
+{
+  "summary": "Full end-to-end test (backend pytest + frontend Playwright) of the 3 new MVP screens: Documents & Photo Backup (regression), Social Stats, and Settings/More rewrite (privacy, notifications, backup, automations, integrations). All new frontend screens correctly wire to pre-existing backend routes. Found and fixed 2 real backend bugs (1 security-relevant, pre-existing, unrelated to this session's frontend work). All requested flows tested live via Playwright on the mobile viewport and pass.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "POST /api/auth/refresh",
+        "issue": "FIXED: Refresh token rotation issued a brand-new random 'family' on every rotation instead of preserving the original family, so the reuse-detection cascade (revoke whole family on replay) only revoked the token being replayed, not any tokens rotated afterward — an attacker who stole an old refresh token and got detected could still use the latest rotated token. Root cause: routes/auth.py `refresh()` called `security.issue_pair(user_id)` without passing the family. Fixed by having `consume_refresh()` return `(user_id, family)` and passing `family` through to `issue_pair()`. Verified via test_refresh_rotates_and_old_token_reuse_is_detected which now passes (was failing before the fix, confirmed by isolated -n 0 run).",
+        "priority": "CRITICAL"
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "POST /api/integrations/{provider}/disconnect",
+        "issue": "FIXED: disconnect set status to 'disconnected' while the catalog default (never-connected) is 'not_connected' — two different string values for the same 'off' state. Frontend happens to only check `status === 'connected'` so no user-facing bug, but it's an inconsistent contract. Normalized disconnect to also set 'not_connected'."
+      },
+      {
+        "endpoint": "backend/tests/test_lifeos_api.py (pre-existing suite)",
+        "issue": "TestAIMemory tests intermittently fail (403) ONLY when run with the configured `-n 2 --dist loadscope` xdist workers, because the file's fresh_user fixture is session-scoped but xdist gives each worker its own process/session — TestMe (which PATCHes ai_enabled=True) and TestAIMemory can land on different workers with different user instances, so AIMemory's create call 403s (ai_enabled defaults false for a user that never got patched). Confirmed by running the same file with `-n 0`: all 20 tests pass. This is a pre-existing test-file design issue (not a backend bug) — flagging since pytest.ini explicitly pins -n 2/loadscope and says not to change it; the test file itself should give TestAIMemory its own fixture or not rely on cross-class ordering."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "app-wide",
+        "issues": ["No `testID` attributes anywhere in the codebase (0 matches for `testID` in /app/frontend/app and /app/frontend/src) — all interactive elements use `accessibilityLabel`/`accessibilityRole` instead, which happened to work fine for Playwright web selectors in this session but doesn't follow the project's stated testID convention. Pre-existing, not introduced this session."]
+      },
+      {
+        "screen": "Today dashboard (HealthCard, others)",
+        "issues": ["Console warning on every load: 'In HTML, <button> cannot be a descendant of <button>' / hydration warning — TouchableOpacity-wrapped interactive elements nested inside another Card's TouchableOpacity render as nested <button> on web. Pre-existing pattern, cosmetic console noise only, no functional breakage observed."]
+      }
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_new_features.py",
+    "/app/backend/tests/test_lifeos_api.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Consider giving TestAIMemory (and any class relying on a profile patched by an earlier class) its own fresh_user fixture, or scope fresh_user at class-level, so the pre-existing test file is robust to the pinned -n 2 --dist loadscope xdist config.",
+    "No action required on the 2 backend bugs fixed this session (refresh-token family propagation, integration disconnect status naming) — both fixed, tested and passing.",
+    "No action required on the 3 new screens / Social Stats / Documents regression — all flows tested live and pass."
+  ],
+  "critical_code_review_comments": [
+    "core/security.py: consume_refresh() now returns (user_id, family) — verify any other caller of consume_refresh() besides routes/auth.py:refresh() was updated (checked: only one caller).",
+    "Automations, Documents, Integrations routes are clean: proper 404s on missing resources, proper user_id scoping on every query, no _id leakage (all use {'_id': 0} projections).",
+    "Preference.put_preferences does a full replace_one — client must always send the full Preference object (frontend correctly does this via savePreferences({...pref, ...changes}) pattern in all 3 new settings screens).",
+    "Social Stats mock data (src/features/social/mockSocialData.ts) is honestly labeled in the screen footer and on the Today SocialCard ('Sample' chip) — good transparency practice, no action needed."
+  ],
+  "updated_files": [
+    "/app/backend/core/security.py",
+    "/app/backend/routes/auth.py",
+    "/app/backend/routes/integrations.py",
+    "/app/backend/tests/test_new_features.py (new)"
+  ],
+  "success_rate": {"backend": "41/41 (100%) when run serially or per isolated class; 39/41 under the pinned parallel xdist config due to a pre-existing test-isolation quirk unrelated to backend correctness", "frontend": "100% of requested flows tested and passing"},
+  "seed_data_creation": "Backend tests create/clean their own TEST_-prefixed and pytest+uuid-prefixed users/documents/automations via fresh registrations; no shared seed data required. Frontend Playwright session used the shared testuser@lifeos.app account — left 1 residual document (Passport scan, pre-existing from earlier iteration) and automations presets (Gym Reminder/Meeting Focus Mode/Bedtime Routine, disabled) in place; all test-created artifacts (TEST_Automated_Doc, Test Reading Time automation) were cleaned up (deleted) during the test run; Instagram connection was left disconnected (original state) after testing.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "This iteration fully executed backend pytest (41 tests, all passing) and live Playwright frontend testing (mobile viewport 390x844) covering: SocialCard tap->navigation, Social Stats connect/disconnect/range-toggle/charts/back-nav, More hub (profile, AI toggle, theme, all 6 grouped nav rows), Privacy Center (5 toggles + persistence across navigation), Notifications (5 toggles + stepper 1-10 clamp + 2 chip rows + persistence), Backup & Storage (backup now + frequency persistence), Automations (preset seeding/no-duplicate-reseed, create via AddAutomationSheet with day chips, enable toggle, test-run, delete), Integrations (list all 7 providers, connect/disconnect, shared state verified live with Social Stats screen), and Documents & Photo Backup regression (real file upload via Playwright file_chooser, title/category, tap-to-view in ViewerModal, long-press-to-delete, storage summary update, backup now). Light regression pass confirmed Today dashboard cards, Health tab, sign-out all still work. Tasks tab is confirmed to still be an intentional StubScreen (pre-existing, out of scope for this session's requested features) — not a new regression.",
+  "rca_of_issue": "Refresh token reuse-detection bug: routes/auth.py's /auth/refresh endpoint called security.issue_pair(user_id) on every rotation without passing forward the original token 'family' UUID, so each rotation started a brand-new family. The reuse-detection logic (revoke all sessions matching a family when a revoked/already-used token is replayed) therefore only ever covered the single family a stolen token belonged to at the moment of replay, not any tokens issued in later rotations. Reproduced with: register -> capture refresh_token_1 -> rotate to refresh_token_2 -> replay refresh_token_1 (correctly detected as reuse, 401) -> then use refresh_token_2 (incorrectly succeeded with 200 instead of the expected 401, since refresh_token_2's family was never revoked). Fixed by threading the family through consume_refresh() -> issue_pair(family=...) so all tokens in a rotation chain share one family and are revoked together on any detected replay."
+}

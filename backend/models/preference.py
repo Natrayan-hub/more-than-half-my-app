@@ -1,4 +1,5 @@
-from typing import Dict, List, Literal
+from datetime import datetime
+from typing import Dict, List, Literal, Optional
 
 from pydantic import BaseModel
 
@@ -13,6 +14,22 @@ class DataControls(BaseModel):
     photos: Literal["cloud", "off"] = "off"
 
 
+class DisplayPrefs(BaseModel):
+    """S25 Appearance — theme itself lives on Profile; these are the
+    remaining display knobs (font size follows a scale factor since OS text
+    size isn't directly readable cross-platform; reduce motion is honored by
+    disabling non-essential Reanimated transitions)."""
+    font_scale: float = 1.0  # 0.85 - 1.3, applied as a multiplier over base type sizes
+    reduce_motion: bool = False
+
+
+class BackupPrefs(BaseModel):
+    """S32 Cloud Sync & Backup — frequency is illustrative (no real
+    scheduler yet); last_backup_at is real, set by POST /documents/backup."""
+    frequency: Literal["manual", "daily", "weekly"] = "manual"
+    last_backup_at: Optional[datetime] = None
+
+
 class Preference(BaseModel):
     id: str  # == user_id
     user_id: str
@@ -24,8 +41,12 @@ class Preference(BaseModel):
         "backup_alerts": "failures_only",
         "weekly_recap": "in_app",
         "quiet_hours": {"start": "22:00", "end": "07:00"},
+        "automation_alerts": True,
+        "email_digests": False,
     }
     sync_prefs: Dict = {"wifi_only": False, "background": True}
     data_controls: DataControls = DataControls()
+    display_prefs: DisplayPrefs = DisplayPrefs()
+    backup_prefs: BackupPrefs = BackupPrefs()
     app_lock: Dict = {"enabled": False, "scope": "vault", "auto_lock_min": 5}
     today_cards: List[Dict] = []  # card visibility + pin order (S25)

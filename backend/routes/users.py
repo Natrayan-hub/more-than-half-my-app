@@ -61,3 +61,26 @@ async def put_preferences(body: Preference, user_id: str = Depends(get_current_u
         {"id": user_id}, pref.model_dump(), upsert=True,
     )
     return pref
+
+
+class EraseRequest(BaseModel):
+    scope: str = "cloud"  # "cloud" is the only scope with server-side work to do
+
+
+@router.post("/erase")
+async def erase_data(body: EraseRequest, user_id: str = Depends(get_current_user_id)):
+    """Settings (S34) 'Delete cloud data' — wipes this user's CONTENT across
+    collections (tasks, documents, health logs, AI memory/suggestions,
+    automations) but keeps the account itself intact. 'local' scope is a
+    no-op here — there's nothing server-side to erase; the client clears its
+    own on-device caches."""
+    if body.scope != "cloud":
+        return {"status": "ok", "scope": body.scope}
+
+    for collection in (
+        database.tasks, database.documents, database.health_entries,
+        database.ai_memory, database.suggestions, database.automations,
+    ):
+        await collection.delete_many({"user_id": user_id})
+
+    return {"status": "ok", "scope": "cloud"}

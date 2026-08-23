@@ -397,15 +397,107 @@ frontend:
           timing issue, not a functional bug - the API integration is working
           and the toggle does update the ai_enabled setting in the backend.
 
+  - task: "Documents & Photo Backup screen: storage summary, document list, photo grid, add/view/delete"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/(tabs)/docs/index.tsx, frontend/src/features/documents/*, backend/routes/documents.py"
+    stuck_count: 0
+    priority: high
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: main
+        comment: >
+          Found already fully implemented from a previous session (backend
+          CRUD + storage/summary + backup routes, frontend StorageHeader/
+          DocumentRow/PhotoThumb/AddSheet/ViewerModal all wired). Fixed a
+          latent bug in AddSheet.tsx (referenced nonexistent
+          theme.colors.primary.subtleBg — corrected to
+          theme.colors.surface.primarySubtle). "Backup settings" link now
+          routes to new /more/backup screen instead of generic /more.
+          Needs full regression test: add document (image picker), add
+          photo, view in ViewerModal, delete (long-press), storage summary
+          numbers update, Backup now button.
+  - task: "Social Stats screen (Instagram): connection status (real), stats grid, growth charts, top post"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/(tabs)/more/social.tsx, frontend/src/features/social/*, backend/routes/integrations.py"
+    stuck_count: 0
+    priority: high
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: main
+        comment: >
+          NEW screen. Connection status is REAL (same Integration record as
+          Settings > Integrations, provider="instagram") — connect (with
+          optional handle input) / disconnect exercise POST
+          /api/integrations/instagram/connect and /disconnect. Stats
+          (followers/reach/engagement/top post) are MOCK, honestly labeled
+          in the footer ("Stats shown are sample data"). Follower-growth and
+          engagement-rate charts use react-native-gifted-charts with 7d/30d/
+          90d range toggle (client-side mock series, no backend call).
+          Today's SocialCard now has onOpen -> router.push("/more/social")
+          (was previously a dead-end card with no tap action). Needs test:
+          tap SocialCard from Today navigates here; connect/disconnect
+          Instagram persists status on refresh; range toggle re-renders
+          charts.
+  - task: "Settings & Automations: More hub rewrite + Privacy Center, Notifications, Backup, Automations, Integrations sub-screens"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/(tabs)/more/index.tsx, .../privacy.tsx, .../notifications.tsx, .../backup.tsx, .../automations.tsx, .../integrations.tsx, backend/routes/automations.py, backend/routes/integrations.py, backend/routes/users.py"
+    stuck_count: 0
+    priority: high
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: main
+        comment: >
+          More hub (S23) rewritten from a stub into a real Settings home:
+          profile header (avatar initial, name, email), Smart suggestions
+          toggle (unchanged, real), theme mode segmented control (unchanged,
+          real — was already fully wired app-wide via ThemeProvider), and
+          grouped rows navigating to 5 new sub-screens. (1) Privacy Center
+          (/more/privacy) — real GET/PUT /api/me/preferences, per-domain
+          cloud-vs-local switches (tasks/documents/health_cache/ai_memory/
+          photos), optimistic with rollback on failure. (2) Notifications
+          (/more/notifications) — real GET/PUT notif_prefs: 5 boolean
+          toggles, suggestions-per-day stepper, backup_alerts + weekly_recap
+          chip selectors, quiet_hours shown read-only (editing deferred).
+          (3) Backup & Storage (/more/backup) — reuses real storage summary
+          + "Backup now" from Documents screen, adds backup_prefs.frequency
+          selector (manual/daily/weekly) via preferences PUT. (4) Automations
+          (/more/automations) — real CRUD against existing Automation model:
+          list (3 disabled presets auto-seed), enable/disable switch,
+          test-run (mock evaluation, sets last_run_at/status), delete,
+          create custom (name + time trigger + optional day chips +
+          notification message via AddAutomationSheet, always starts
+          disabled per the "no auto-enable" trust rule). (5) Integrations
+          (/more/integrations) — real connect/disconnect for the full
+          provider catalog (apple_health, health_connect, garmin,
+          google_calendar, notion, alexa, instagram — same record Social
+          Stats reads for instagram). New shared components:
+          ScreenHeader (back button + title), SettingsRow/SettingsGroup
+          (grouped list rows). Fixed pre-existing TS errors in
+          src/theme/tokens.ts (darkColors/darkElevation literal-type
+          widening against `as const` lightColors/lightElevation) by
+          introducing explicit Colors/ElevationSet interfaces — tsc --noEmit
+          is now fully clean across the frontend. Needs full test: every
+          sub-screen loads and saves without error, toggles persist after
+          navigating away and back (re-fetch), automation create/enable/
+          test-run/delete round-trip, integrations connect/disconnect
+          round-trip, theme switching still works from the new location.
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 6
+  test_sequence: 7
 
 test_plan:
   current_focus:
-    - "AI suggestion card on Today screen with real ChatGPT"
-    - "Smart suggestions toggle on More screen"
+    - "Documents & Photo Backup screen: storage summary, document list, photo grid, add/view/delete"
+    - "Social Stats screen (Instagram): connection status (real), stats grid, growth charts, top post"
+    - "Settings & Automations: More hub rewrite + Privacy Center, Notifications, Backup, Automations, Integrations sub-screens"
   stuck_tasks: []
   test_all: false
 
@@ -476,22 +568,32 @@ agent_communication:
       calls handled gracefully. (9) Security gating: all /api/ai/* routes return
       403 SCOPE_DENIED when ai_enabled=false. (10) Unauthorized access returns 401.
       AI memory routes also tested and working. Backend AI features are production-ready.
-  - agent: "testing"
+  - agent: "main"
     message: >
-      AI suggestion feature visual smoke test COMPLETE. Tested new AI feature
-      in Expo web preview (http://localhost:3000). Results: (1) Login flow
-      working - successfully authenticated with testuser@lifeos.app. (2) Today
-      dashboard loads correctly with all cards (Tasks, Health, Water, Social).
-      (3) AI SUGGESTION CARD FOUND and WORKING: Card appears at top of feed
-      with REAL ChatGPT-generated suggestion "You're already at 500 mL this
-      morning—want to refill your water now?" with proper structure (sparkle
-      icon, "SUGGESTION" label, body text, "Based on..." reason, "Sounds good"
-      and "Dismiss" buttons). Dismiss functionality tested and working - card
-      disappears from feed without errors. (4) More tab navigation successful.
-      (5) Smart suggestions toggle FOUND and WORKING: Card shows "Smart
-      suggestions" title with ChatGPT description, toggle switch present and
-      initially ON. Backend API integration working (PATCH /api/me/profile
-      returns 200 OK). Minor timing issue with toggle state reflection in DOM
-      but core functionality working. (6) No critical console errors (only
-      known cosmetic nested button warnings). REAL ChatGPT integration
-      confirmed working - suggestions are contextual and based on user data.
+      Completed the 3 final MVP screens (Documents & Photo Backup, Social
+      Stats, Settings & Automations) that were left in-progress from the
+      previous session. Documents was already ~fully built (backend +
+      frontend) from before — fixed one latent theme-token bug in AddSheet
+      and repointed "Backup settings" to the new /more/backup screen. Built
+      Social Stats screen from scratch (real Instagram connect/disconnect
+      status via existing Integration record, mock stats/charts honestly
+      labeled). Rewrote the More tab from a stub into a real Settings hub
+      with 5 new sub-screens (Privacy Center, Notifications, Backup &
+      Storage, Automations, Integrations) — all backed by REAL existing
+      backend routes (no new backend endpoints needed, everything was
+      already scaffolded). Also fixed pre-existing TypeScript errors in
+      theme/tokens.ts flagged in a previous handoff — tsc --noEmit is now
+      clean, ESLint clean on all new/changed files. No backend code was
+      changed. Please test: (1) Documents add/view/delete/backup flow,
+      (2) Social Stats screen incl. Instagram connect/disconnect and
+      navigation from Today's SocialCard, (3) every new /more/* sub-screen
+      (Privacy toggles persist, Notifications toggles/steppers/chips
+      persist, Backup frequency + manual backup, Automations create/toggle/
+      test-run/delete, Integrations connect/disconnect for all providers),
+      (4) regression on existing Today/Health/Tasks/Auth flows — nothing
+      there was touched except SocialCard gaining an onOpen prop and
+      index.tsx passing it. Test credentials: testuser@lifeos.app /
+      LifeOS!2026demo (see /app/memory/test_credentials.md). No mocked APIs
+      were introduced beyond what already existed (Social Stats numbers are
+      mock, honestly labeled in-UI; Instagram connect/disconnect itself is
+      real backend state).

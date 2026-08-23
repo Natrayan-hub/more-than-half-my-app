@@ -12,22 +12,5 @@
 export type { HealthSnapshot } from "@/src/features/health/metrics";
 export { getMockHealthSnapshot } from "@/src/features/health/metrics";
 
-// SocialStat shape (Technical Foundation §A.3) — MOCK until Instagram
-// Graph API integration (P1) is connected.
-export interface SocialSnapshot {
-  captured_on: string;
-  followers: number;
-  followers_delta: number;
-  reach: number;
-  engagement_rate: number;
-}
-
-export function getMockSocialSnapshot(): SocialSnapshot {
-  return {
-    captured_on: new Date().toISOString().slice(0, 10),
-    followers: 12480,
-    followers_delta: 36,
-    reach: 8900,
-    engagement_rate: 4.7,
-  };
-}
+export type { SocialSnapshot } from "@/src/features/social/mockSocialData";
+export { getMockSocialSnapshot } from "@/src/features/social/mockSocialData";

@@ -4,7 +4,7 @@ import { Feather } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-import { Card, CardHeader } from "@/src/components/Card";
+import { Card } from "@/src/components/Card";
 import { useTheme } from "@/src/theme";
 import type { SocialSnapshot } from "@/src/features/today/mocks";
 
@@ -37,11 +37,11 @@ function Stat({ label, value, delta }: StatProps) {
   );
 }
 
-export function SocialCard({ snapshot }: { snapshot: SocialSnapshot }) {
+export function SocialCard({ snapshot, onOpen }: { snapshot: SocialSnapshot; onOpen: () => void }) {
   const { theme } = useTheme();
 
   return (
-    <Card>
+    <Card onPress={onOpen} accessibilityLabel="Social stats, open Instagram details">
       <View style={styles.headerRow}>
         <CardHeaderInline />
         <View
@@ -68,7 +68,7 @@ export function SocialCard({ snapshot }: { snapshot: SocialSnapshot }) {
           { color: theme.colors.text.tertiary, marginTop: theme.space.sm },
         ]}
       >
-        Connect Instagram (Business/Creator) to see your real stats
+        Tap for growth chart & connection status
       </Text>
     </Card>
   );

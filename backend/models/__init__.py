@@ -10,7 +10,8 @@ from models.document import Document, DocumentPage
 from models.integration import Integration, IntegrationToken
 from models.ai import AIMemoryEntry, Suggestion
 from models.notification import NotificationItem
-from models.preference import Preference, DataControls
+from models.preference import Preference, DataControls, DisplayPrefs, BackupPrefs
+from models.automation import Automation, AutomationTrigger, AutomationAction
 from models.system import SyncOp, AuditLogEntry, Job
 
 __all__ = [
@@ -22,6 +23,7 @@ __all__ = [
     "Integration", "IntegrationToken",
     "AIMemoryEntry", "Suggestion",
     "NotificationItem",
-    "Preference", "DataControls",
+    "Preference", "DataControls", "DisplayPrefs", "BackupPrefs",
+    "Automation", "AutomationTrigger", "AutomationAction",
     "SyncOp", "AuditLogEntry", "Job",
 ]

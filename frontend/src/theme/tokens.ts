@@ -49,7 +49,43 @@ export const type = {
   },
 } as const;
 
-const lightColors = {
+// Widened shape (string/number, not literal hex types) so light & dark
+// palettes — which share this exact shape but differ in every value — both
+// type-check cleanly against one interface instead of against each other's
+// literal types.
+export interface Colors {
+  bg: { canvas: string };
+  surface: {
+    default: string;
+    raised: string;
+    sunken: string;
+    inverse: string;
+    primarySubtle: string;
+    aiSubtle: string;
+  };
+  overlay: { scrim: string };
+  text: {
+    primary: string;
+    secondary: string;
+    tertiary: string;
+    disabled: string;
+    onPrimary: string;
+    onInverse: string;
+    link: string;
+  };
+  primary: { default: string; pressed: string; subtleText: string };
+  secondary: { default: string };
+  ai: { default: string; onSubtle: string };
+  success: { default: string; text: string; subtleBg: string };
+  warning: { default: string; text: string; subtleBg: string };
+  error: { default: string; text: string; subtleBg: string };
+  info: { default: string; subtleBg: string };
+  border: { default: string; strong: string; focus: string };
+  chart: { grid: string; series: string[] };
+  privacy: { local: string; cloud: string };
+}
+
+const lightColors: Colors = {
   bg: { canvas: "#F7F7F5" },
   surface: {
     default: "#FFFFFF",
@@ -82,9 +118,9 @@ const lightColors = {
     series: ["#4F5DE8", "#0FA396", "#7C5CE8", "#D97E06", "#1E74D9"],
   },
   privacy: { local: "#565B66", cloud: "#1E74D9" },
-} as const;
+};
 
-const darkColors: typeof lightColors = {
+const darkColors: Colors = {
   bg: { canvas: "#0F1013" },
   surface: {
     default: "#1A1C21",
@@ -117,11 +153,24 @@ const darkColors: typeof lightColors = {
     series: ["#9AA5F4", "#5FCEC2", "#B49AF4", "#F5C165", "#7FB5F5"],
   },
   privacy: { local: "#A7ACB8", cloud: "#5CA3EE" },
-} as const;
+};
 
 // Elevation — "quiet depth": light uses soft shadows, dark raises via surface
 // lightness (shadows near-disabled).
-const lightElevation = {
+interface ElevationSpec {
+  shadowColor: string;
+  shadowOpacity: number;
+  shadowRadius: number;
+  shadowOffset: { width: number; height: number };
+  elevation: number;
+}
+interface ElevationSet {
+  e1: ElevationSpec;
+  e2: ElevationSpec;
+  e3: ElevationSpec;
+}
+
+const lightElevation: ElevationSet = {
   e1: {
     shadowColor: "#1B1D22", shadowOpacity: 0.06, shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 }, elevation: 2,
@@ -134,9 +183,9 @@ const lightElevation = {
     shadowColor: "#1B1D22", shadowOpacity: 0.14, shadowRadius: 28,
     shadowOffset: { width: 0, height: 12 }, elevation: 12,
   },
-} as const;
+};
 
-const darkElevation: typeof lightElevation = {
+const darkElevation: ElevationSet = {
   e1: {
     shadowColor: "#000000", shadowOpacity: 0, shadowRadius: 0,
     shadowOffset: { width: 0, height: 0 }, elevation: 0,
@@ -149,9 +198,7 @@ const darkElevation: typeof lightElevation = {
     shadowColor: "#000000", shadowOpacity: 0.4, shadowRadius: 16,
     shadowOffset: { width: 0, height: 6 }, elevation: 8,
   },
-} as const;
-
-export type Colors = typeof lightColors;
+};
 
 export const light = {
   scheme: "light" as const,

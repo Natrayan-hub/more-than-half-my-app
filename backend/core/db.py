@@ -26,6 +26,7 @@ ai_memory = db.ai_memory
 suggestions = db.suggestions
 notifications = db.notifications
 preferences = db.preferences
+automations = db.automations
 sync_oplog = db.sync_oplog
 audit_log = db.audit_log
 jobs = db.jobs  # ExportJob / DeletionJob
@@ -39,10 +40,13 @@ async def ensure_indexes() -> None:
     await tasks.create_index([("user_id", 1), ("project_id", 1)])
     await health_entries.create_index([("user_id", 1), ("type", 1), ("logged_at", -1)])
     await documents.create_index([("user_id", 1), ("category", 1)])
+    await documents.create_index([("user_id", 1), ("kind", 1), ("created_at", -1)])
     await notifications.create_index([("user_id", 1), ("created_at", -1)])
     await sync_oplog.create_index([("user_id", 1), ("server_seq", 1)])
     await audit_log.create_index([("user_id", 1), ("created_at", -1)])
     await suggestions.create_index([("user_id", 1), ("status", 1), ("created_at", -1)])
+    await automations.create_index([("user_id", 1), ("deleted_at", 1)])
+    await integrations.create_index([("user_id", 1), ("provider", 1)], unique=True)
 
 
 async def close() -> None:
