@@ -16,6 +16,7 @@ from starlette.middleware.cors import CORSMiddleware
 from core import db as database
 from core.config import settings
 from core.security import ensure_session_indexes
+from core.storage import init_storage
 from routes import api_router
 
 logging.basicConfig(
@@ -56,6 +57,10 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 async def on_startup():
     await database.ensure_indexes()
     await ensure_session_indexes()
+    try:
+        init_storage()
+    except Exception:
+        logger.exception("Object storage init failed — avatar upload/download will error until this recovers")
     logger.info("LifeOS API started (env=%s)", settings.ENV)
 
 

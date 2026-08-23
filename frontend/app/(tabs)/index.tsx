@@ -132,7 +132,8 @@ export default function TodayScreen() {
     <View style={[styles.screen, { backgroundColor: theme.colors.bg.canvas }]}>
       <TodayHeader
         name={profile?.display_name ?? "there"}
-        onPressAvatar={() => router.push("/more")}
+        avatarUrl={profile?.avatar_url}
+        onPressAvatar={() => router.push("/more/profile")}
         onPressBell={() => {}}
       />
 

@@ -1,10 +1,11 @@
-// S6 header: time-of-day greeting + date, avatar (→ profile, stub) and
+// S6 header: time-of-day greeting + date, avatar (→ More hub) and
 // notifications bell (→ S8, stub).
 import { Feather } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AvatarImage } from "@/src/components/AvatarImage";
 import { useTheme } from "@/src/theme";
 
 function greetingForNow(): string {
@@ -24,11 +25,12 @@ function formatDate(): string {
 
 interface TodayHeaderProps {
   name: string;
+  avatarUrl?: string | null;
   onPressAvatar: () => void;
   onPressBell: () => void;
 }
 
-export function TodayHeader({ name, onPressAvatar, onPressBell }: TodayHeaderProps) {
+export function TodayHeader({ name, avatarUrl, onPressAvatar, onPressBell }: TodayHeaderProps) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -57,11 +59,7 @@ export function TodayHeader({ name, onPressAvatar, onPressBell }: TodayHeaderPro
           accessibilityLabel="Profile"
           style={styles.iconButton}
         >
-          <View style={[styles.avatar, { backgroundColor: theme.colors.surface.primarySubtle }]}>
-            <Text style={[theme.type.label, { color: theme.colors.primary.subtleText }]}>
-              {name.slice(0, 1).toUpperCase()}
-            </Text>
-          </View>
+          <AvatarImage avatarUrl={avatarUrl} displayName={name} size={32} />
         </TouchableOpacity>
       </View>
     </View>
@@ -81,13 +79,6 @@ const styles = StyleSheet.create({
   iconButton: {
     width: 44,
     height: 44,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",
   },

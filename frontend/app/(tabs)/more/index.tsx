@@ -2,11 +2,13 @@
 // (Notifications, Privacy, Backup, Automations, Integrations) navigating
 // to real sub-screens, plus in-place Smart suggestions toggle and
 // system/light/dark theme control (both already fully real).
+import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 
 import { api } from "@/src/api/client";
+import { AvatarImage } from "@/src/components/AvatarImage";
 import { SettingsGroup, SettingsRow } from "@/src/components/SettingsRow";
 import { useToast } from "@/src/components/Toast";
 import { useAuth } from "@/src/providers/AuthProvider";
@@ -34,17 +36,18 @@ export default function MoreScreen() {
     }
   };
 
-  const initial = (profile?.display_name || user?.email || "?").charAt(0).toUpperCase();
-
   return (
     <View style={[styles.screen, { backgroundColor: theme.colors.bg.canvas }]}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={[theme.type.h1, { color: theme.colors.text.primary, marginTop: theme.space.sm }]}>More</Text>
 
-        <View style={styles.profileRow}>
-          <View style={[styles.avatar, { backgroundColor: theme.colors.primary.default, borderRadius: theme.radius.full }]}>
-            <Text style={[theme.type.h3, { color: theme.colors.text.onPrimary }]}>{initial}</Text>
-          </View>
+        <TouchableOpacity
+          onPress={() => router.push("/more/profile")}
+          accessibilityRole="button"
+          accessibilityLabel="Edit profile"
+          style={styles.profileRow}
+        >
+          <AvatarImage avatarUrl={profile?.avatar_url} displayName={profile?.display_name} size={52} />
           <View style={styles.flex}>
             <Text style={[theme.type.h4, { color: theme.colors.text.primary }]} numberOfLines={1}>
               {profile?.display_name || "Your account"}
@@ -55,7 +58,8 @@ export default function MoreScreen() {
               </Text>
             ) : null}
           </View>
-        </View>
+          <Feather name="chevron-right" size={18} color={theme.colors.text.tertiary} />
+        </TouchableOpacity>
 
         <View
           style={[
@@ -144,7 +148,6 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 32, gap: 16 },
   profileRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  avatar: { width: 52, height: 52, alignItems: "center", justifyContent: "center" },
   flex: { flex: 1 },
   aiRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16 },
   aiText: { flex: 1, gap: 4 },

@@ -488,16 +488,54 @@ frontend:
           test-run/delete round-trip, integrations connect/disconnect
           round-trip, theme switching still works from the new location.
 
+  - task: "Edit Profile screen: display name update + avatar upload/download via Emergent Object Storage"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/(tabs)/more/profile.tsx, frontend/src/components/AvatarImage.tsx, frontend/src/features/profile/api.ts, backend/core/storage.py, backend/routes/users.py (POST/GET /me/avatar), backend/routes/deps.py, backend/models/user.py"
+    stuck_count: 0
+    priority: high
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: main
+        comment: >
+          NEW feature (user-requested follow-up after the 3 MVP screens).
+          Backend: added core/storage.py (Emergent Object Storage client —
+          init_storage/put_object/get_object per integration playbook),
+          POST /api/me/avatar (multipart upload, image/jpeg|png|webp only,
+          5MB cap, stores object at lifeos/uploads/{user_id}/{uuid}.{ext},
+          updates Profile.avatar_object_path (internal, excluded from API
+          responses) + Profile.avatar_url = "/me/avatar?v={cache_bust}"),
+          GET /api/me/avatar (streams the image back, auth via Bearer
+          header OR ?token= query param — new get_current_user_id_flexible
+          dep in routes/deps.py, needed because web <img> reads can't send
+          an Authorization header). server.py calls init_storage() on
+          startup (best-effort, logs+continues on failure rather than
+          crashing boot). Frontend: new AvatarImage component (resolves
+          access token, native passes Authorization header on the Image
+          source, web appends ?token= — falls back to an initials circle
+          when no avatar or token not yet loaded), new /more/profile.tsx
+          screen (tap avatar → expo-image-picker with full permission
+          contract: check → contextual request → inline "Open Settings"
+          banner if permanently denied; display name text field + Save,
+          uses PATCH /me/profile). Wired AvatarImage into More hub profile
+          row (now tappable → /more/profile) and TodayHeader (was a plain
+          initials circle, now shows the real avatar once set). tsc
+          --noEmit and ESLint clean. Needs test: upload an avatar image,
+          confirm it renders in Edit Profile, More hub, and Today header
+          all update to the same photo; change display name and confirm
+          persistence after navigating away/back and after a fresh login;
+          verify GET /api/me/avatar 404s gracefully (falls back to
+          initials) for a user who hasn't uploaded one yet.
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 7
+  test_sequence: 8
 
 test_plan:
   current_focus:
-    - "Documents & Photo Backup screen: storage summary, document list, photo grid, add/view/delete"
-    - "Social Stats screen (Instagram): connection status (real), stats grid, growth charts, top post"
-    - "Settings & Automations: More hub rewrite + Privacy Center, Notifications, Backup, Automations, Integrations sub-screens"
+    - "Edit Profile screen: display name update + avatar upload/download via Emergent Object Storage"
   stuck_tasks: []
   test_all: false
 

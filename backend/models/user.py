@@ -26,6 +26,9 @@ class Profile(BaseModel):
     user_id: str
     display_name: str
     avatar_url: Optional[str] = None
+    # 🔴 Internal object-storage path — never a public URL. Excluded from API
+    # responses; clients always fetch the image through GET /me/avatar.
+    avatar_object_path: Optional[str] = Field(default=None, exclude=True)
     wake_time: str = "06:30"
     focus_areas: List[str] = []  # fitness | tasks | documents | family | creator
     units: Literal["metric", "imperial"] = "metric"
