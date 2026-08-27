@@ -27,7 +27,7 @@ from core import db as database
 logger = logging.getLogger("lifeos")
 
 SYSTEM_PROMPT = (
-    "You are LifeOS's quiet, explainable suggestion engine. You receive a compact JSON "
+    "You are Nannu's quiet, explainable suggestion engine. You receive a compact JSON "
     "snapshot of ONE user's current tasks, manual health logs, and known preferences. "
     "Produce at most ONE short, genuinely useful, actionable suggestion for right now.\n"
     "Rules:\n"

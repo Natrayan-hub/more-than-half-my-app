@@ -1,4 +1,4 @@
-"""LifeOS API entrypoint.
+"""Nannu API entrypoint.
 
 Structure:
   core/    — config + Mongo connection (+ index bootstrap)
@@ -61,7 +61,7 @@ async def on_startup():
         init_storage()
     except Exception:
         logger.exception("Object storage init failed — avatar upload/download will error until this recovers")
-    logger.info("LifeOS API started (env=%s)", settings.ENV)
+    logger.info("Nannu API started (env=%s)", settings.ENV)
 
 
 @app.on_event("shutdown")

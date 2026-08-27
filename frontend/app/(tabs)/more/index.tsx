@@ -137,7 +137,7 @@ export default function MoreScreen() {
         </SettingsGroup>
 
         <Text style={[theme.type.caption, { color: theme.colors.text.tertiary, textAlign: "center", marginTop: 4 }]}>
-          LifeOS · v1.0.0
+          Nannu · v1.0.0
         </Text>
       </ScrollView>
     </View>

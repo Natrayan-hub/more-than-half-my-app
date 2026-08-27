@@ -62,7 +62,7 @@ export default function PermissionsScreen() {
     <OnboardingScaffold
       step={3}
       title="Only what's needed"
-      subtitle="LifeOS asks for each permission with the system prompt the first time you use the feature — nothing up front, nothing hidden."
+      subtitle="Nannu asks for each permission with the system prompt the first time you use the feature — nothing up front, nothing hidden."
       primaryLabel="Continue"
       onPrimary={() => router.push("/(auth)/personalize")}
       skipLabel="Decide later"

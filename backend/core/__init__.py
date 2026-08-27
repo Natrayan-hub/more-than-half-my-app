@@ -1,1 +1,1 @@
-# LifeOS backend package
+# Nannu backend package

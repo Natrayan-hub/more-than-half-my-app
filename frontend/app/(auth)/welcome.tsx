@@ -32,7 +32,7 @@ export default function WelcomeScreen() {
   return (
     <OnboardingScaffold
       title="Your life, in one calm place"
-      subtitle="LifeOS brings the pieces of your day together — privately."
+      subtitle="Nannu brings the pieces of your day together — privately."
       primaryLabel="Get started"
       onPrimary={() => router.push("/(auth)/account?mode=signup")}
       skipLabel="I already have an account"

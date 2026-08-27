@@ -49,7 +49,7 @@ export default function PersonalizeScreen() {
       });
       setProfile(updated);
       if (aiEnabled) {
-        // Seed AI memory (viewable/editable later in "What LifeOS remembers").
+        // Seed AI memory (viewable/editable later in "What Nannu remembers").
         await api.post("/ai/memory", {
           domain: "routine",
           statement: `Usually starts the day around ${wakeTime}`,
@@ -199,7 +199,7 @@ export default function PersonalizeScreen() {
             </Text>
             <Text style={[theme.type.caption, { color: theme.colors.ai.onSubtle }]}>
               Helpful nudges that always explain themselves. Off by default — you can
-              change this anytime, and see everything LifeOS remembers.
+              change this anytime, and see everything Nannu remembers.
             </Text>
           </View>
           <Switch

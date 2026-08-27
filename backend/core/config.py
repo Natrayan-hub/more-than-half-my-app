@@ -1,4 +1,4 @@
-"""Environment configuration for the LifeOS backend.
+"""Environment configuration for the Nannu backend.
 
 Reads from backend/.env (loaded once here). Protected vars (MONGO_URL, DB_NAME)
 are never modified in code. ENV defaults to "dev" so local/preview work with
@@ -19,7 +19,7 @@ class Settings:
     DB_NAME: str = os.environ["DB_NAME"]
     JWT_SECRET: str = os.environ["JWT_SECRET"]
     API_VERSION: str = "v1"
-    APP_NAME: str = "LifeOS API"
+    APP_NAME: str = "Nannu API"
 
     @property
     def is_prod(self) -> bool:

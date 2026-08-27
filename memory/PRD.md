@@ -1,5 +1,10 @@
 # LifeOS — Product & Build Memory
 
+> **Branding note:** the shipped app is now named **Nannu** (app.json
+> `expo.name`, app icon, and in-app copy updated). The internal codebase,
+> file names, and this memory doc still use "LifeOS" as the working/spec
+> name — purely a display-name change, no functional/architecture change.
+
 ## Product
 LifeOS — personal life command center (iOS + Android, Expo). Unifies tasks, health,
 calendar, documents (OCR), social stats into a "Today" dashboard with private,

@@ -58,7 +58,7 @@ export default function IntegrationsScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary.default} />}
       >
         <Text style={[theme.type.bodySm, { color: theme.colors.text.secondary }]}>
-          Connect apps and services LifeOS can read from (and, for two-way providers, write to).
+          Connect apps and services Nannu can read from (and, for two-way providers, write to).
         </Text>
 
         {integrationsData.loading ? (

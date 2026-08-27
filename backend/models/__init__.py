@@ -1,4 +1,4 @@
-"""LifeOS entity models (Pydantic), mirroring the Technical Foundation Part A.
+"""Nannu entity models (Pydantic), mirroring the Technical Foundation Part A.
 
 Import from this package: `from models import Task, Document, ...`
 """
