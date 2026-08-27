@@ -272,6 +272,7 @@ export interface Preference {
   data_controls: DataControls;
   display_prefs: DisplayPrefs;
   backup_prefs: BackupPrefs;
+  ai_prefs: { model: string };
   app_lock: { enabled: boolean; scope: "vault" | "app"; auto_lock_min: number };
   today_cards: { key: string; visible: boolean; pinned: boolean }[];
 }

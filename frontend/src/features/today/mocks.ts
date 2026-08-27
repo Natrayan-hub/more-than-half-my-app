@@ -8,7 +8,7 @@
 // tab summary both read the same function, so their numbers can never drift.
 //
 // Note: the AI Suggestion card is NO LONGER mocked here — it's wired to the
-// real ChatGPT-backed GET /ai/suggestions endpoint (see src/features/ai/api.ts).
+// real GET /ai/suggestions endpoint, model chosen in Settings > AI Model (see src/features/ai/api.ts).
 export type { HealthSnapshot } from "@/src/features/health/metrics";
 export { getMockHealthSnapshot } from "@/src/features/health/metrics";
 

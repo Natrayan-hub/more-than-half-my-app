@@ -1,0 +1,31 @@
+{
+  "summary": "Tested the new Claude AI Model selector feature end-to-end (backend + frontend). Created /app/backend/tests/test_ai_model_selection.py (10 pytest cases, all passing): ai_prefs.model GET/PUT round-trip for all 4 catalog keys (gpt-5.4, claude-sonnet-5, claude-sonnet-4-6, claude-haiku-4-5), schema accepts unknown/legacy keys (resolve_model fallback), and CRITICAL end-to-end suggestion generation through emergentintegrations/EMERGENT_LLM_KEY for each of the 4 models. Confirmed via a supplementary manual script that Claude Sonnet 4.6, Claude Haiku 4.5, and Claude Sonnet 5 all returned real, contextually-correct suggestion payloads (e.g. 'You haven't logged any water today...', reason citing water_ml_today/overdue_count) — not just empty/null responses. Backend logs show LiteLLM completion() calls resolving correctly to claude-sonnet-5 / claude-sonnet-4-6 / claude-haiku-4-5-20251001 model ids with zero exceptions/tracebacks (the 'provider = openai' in logs is expected — Emergent's universal key routes all providers through one openai-compatible proxy endpoint, this is not a bug). Frontend: logged in as testuser@lifeos.app, navigated More -> AI group -> AI Model screen — all 4 rows render correctly (label, provider badge, description, GPT-5.4 pre-selected by default). Tapped Claude Sonnet 4.6: checkmark moved immediately (optimistic UI), persisted after navigating back to More hub and re-entering the screen (proves PUT/GET /api/me/preferences round-trip works live). Switched back to GPT-5.4 successfully (regression on original provider path). Light regression pass: login, Today dashboard (rendered a live water suggestion for testuser in production), More hub navigation to Privacy Center/Notifications/Backup & storage all working, and the 'Smart suggestions' ai_enabled toggle (PATCH /api/me/profile) correctly flips off/on and persists visually.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "More hub (index.tsx)", "issues": ["'Smart suggestions' card subtitle still says 'ChatGPT-powered nudges on Today' — now stale/misleading copy since users can pick Claude models via the new AI Model screen. Minor cosmetic text fix, not a functional bug."]}
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_ai_model_selection.py", "/app/test_reports/pytest/pytest_ai_model_results.xml"],
+  "action_items": [
+    "Update More hub 'Smart suggestions' subtitle copy to be provider-agnostic (e.g. 'AI-powered nudges on Today') since it no longer exclusively uses GPT."
+  ],
+  "critical_code_review_comments": [
+    "core/ai_models.py: clean single-source-of-truth catalog with safe resolve_model() fallback — good defensive design, confirmed working when tested with an unknown model key.",
+    "suggestion_engine.py correctly reads Preference.ai_prefs.model per-call (not cached), so provider switches take effect immediately on the next suggestion generation — verified in this session.",
+    "routes/ai.py _maybe_generate_suggestion only generates when no pending suggestion exists for the day; tests had to explicitly dismiss pending suggestions between model switches to force fresh generations — this is correct/expected product behavior, not a bug, but worth knowing for future test authors."
+  ],
+  "updated_files": ["/app/backend/tests/test_ai_model_selection.py (new)"],
+  "success_rate": {"backend": "100% (10/10 new AI model tests passing, incl. 4/4 real Anthropic + OpenAI LLM calls succeeding)", "frontend": "100% of requested AI Model UI/persistence + regression flows verified"},
+  "seed_data_creation": "Created isolated pytest+aimodel+*/pytest+manual+* test users with a TEST_ prefixed overdue task each, used only for this session's suggestion-engine tests (fresh users per run, no shared/seeded prod data touched).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Claude/Anthropic integration via emergentintegrations is now proven working end-to-end (all 3 Claude tiers + original GPT-5.4 path). No blocking bugs found this session; only a cosmetic copy nit on the More hub 'Smart suggestions' subtitle. Full previous feature matrix (Documents, Social Stats, Automations, Profile+Avatar, Nannu rebrand) was not re-tested in depth per instructions (light regression only) — already covered in iterations 4-6.",
+  "rca_of_issue": "No functional bugs found. The only finding is a stale UI copy string ('ChatGPT-powered nudges') that predates the multi-provider AI Model feature and should be generalized."
+}

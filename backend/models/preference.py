@@ -30,6 +30,15 @@ class BackupPrefs(BaseModel):
     last_backup_at: Optional[datetime] = None
 
 
+class AiPrefs(BaseModel):
+    """Which model powers AI-generated features (currently: the Today
+    Suggestion engine). Keys must match core/ai_models.py AI_MODEL_CATALOG —
+    resolve_model() falls back to the default for any unknown/legacy value,
+    so this field is intentionally a plain str rather than a Literal (avoids
+    a breaking schema change if the catalog grows)."""
+    model: str = "gpt-5.4"
+
+
 class Preference(BaseModel):
     id: str  # == user_id
     user_id: str
@@ -48,5 +57,6 @@ class Preference(BaseModel):
     data_controls: DataControls = DataControls()
     display_prefs: DisplayPrefs = DisplayPrefs()
     backup_prefs: BackupPrefs = BackupPrefs()
+    ai_prefs: AiPrefs = AiPrefs()
     app_lock: Dict = {"enabled": False, "scope": "vault", "auto_lock_min": 5}
     today_cards: List[Dict] = []  # card visibility + pin order (S25)

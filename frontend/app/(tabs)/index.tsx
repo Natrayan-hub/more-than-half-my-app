@@ -33,7 +33,7 @@ export default function TodayScreen() {
   const toast = useToast();
   const [refreshing, setRefreshing] = useState(false);
 
-  // Real data (backend) — tasks + water logs + AI suggestion (ChatGPT,
+  // Real data (backend) — tasks + water logs + AI suggestion (GPT or Claude,
   // server-side generated — see backend/core/suggestion_engine.py)
   const tasksData = useCardData<Task[]>("today.tasks", fetchTodayTasks);
   const waterData = useCardData<HealthEntry[]>("today.water", fetchWaterToday);

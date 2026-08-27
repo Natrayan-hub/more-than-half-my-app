@@ -528,14 +528,56 @@ frontend:
           verify GET /api/me/avatar 404s gracefully (falls back to
           initials) for a user who hasn't uploaded one yet.
 
+  - task: "AI Model selector (Settings): choose GPT-5.4 or Claude (Sonnet 5 / Sonnet 4.6 / Haiku 4.5) for the Today Suggestion engine"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/(tabs)/more/ai-model.tsx, frontend/src/features/preferences/aiModels.ts, backend/core/ai_models.py, backend/core/suggestion_engine.py, backend/models/preference.py"
+    stuck_count: 0
+    priority: high
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: main
+        comment: >
+          NEW feature (user-requested Claude integration, delivered as a
+          user-selectable AI provider so both GPT and Claude stay
+          available). Backend: new core/ai_models.py catalog (single
+          source of truth for 4 selectable (provider, model) pairs: GPT-5.4
+          via openai, Claude Sonnet 5 / Sonnet 4.6 / Haiku 4.5 via
+          anthropic — all through the existing EMERGENT_LLM_KEY, no new
+          credentials needed). New Preference.ai_prefs.model field
+          (plain str, defaults to "gpt-5.4", resolve_model() falls back
+          silently for unknown/legacy values — old preference docs without
+          this field just get the default via Pydantic, no migration
+          needed). suggestion_engine.generate_suggestion_payload() now
+          reads the user's ai_prefs.model and calls
+          .with_model(provider, model) accordingly instead of the
+          previously hardcoded openai/gpt-5.4 — this is a one-shot
+          send_message() JSON call (not a chat UI), so no streaming
+          change was needed here (matches the existing precedent in this
+          file and the integration playbook's non-streaming carve-out).
+          No new PUT/GET routes needed — existing PUT /me/preferences
+          already replaces the whole Preference doc. Frontend: new
+          /more/ai-model.tsx screen (radio-list of the 4 options with
+          provider badge + one-line description, optimistic select with
+          rollback on save failure), new "AI" settings group in the More
+          hub linking to it. tsc --noEmit and ESLint clean. Needs test:
+          switch to each Claude model + GPT, confirm selection persists
+          after navigating away/back, confirm an AI suggestion actually
+          generates successfully (200, valid suggestion or graceful
+          none) with a Claude model selected — this is the first time
+          Anthropic has been called through this LLM key in this app, so
+          the provider swap itself needs to be proven end-to-end, not
+          just the settings UI.
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 8
+  test_sequence: 9
 
 test_plan:
   current_focus:
-    - "Edit Profile screen: display name update + avatar upload/download via Emergent Object Storage"
+    - "AI Model selector (Settings): choose GPT-5.4 or Claude (Sonnet 5 / Sonnet 4.6 / Haiku 4.5) for the Today Suggestion engine"
   stuck_tasks: []
   test_all: false
 

@@ -75,7 +75,7 @@ export default function MoreScreen() {
           <View style={styles.aiText}>
             <Text style={[theme.type.h4, { color: theme.colors.text.primary }]}>Smart suggestions</Text>
             <Text style={[theme.type.caption, { color: theme.colors.ai.onSubtle }]}>
-              ChatGPT-powered nudges on Today — always explainable, never automatic.
+              AI-powered nudges on Today — always explainable, never automatic.
             </Text>
           </View>
           <Switch
@@ -87,6 +87,10 @@ export default function MoreScreen() {
             accessibilityLabel="Enable smart suggestions"
           />
         </View>
+
+        <SettingsGroup title="AI">
+          <SettingsRow icon="cpu" title="AI Model" subtitle="Choose GPT or Claude for Smart suggestions" onPress={() => router.push("/more/ai-model")} />
+        </SettingsGroup>
 
         <SettingsGroup title="Data & privacy">
           <SettingsRow icon="shield" title="Privacy Center" subtitle="Local vs. cloud for each data type" onPress={() => router.push("/more/privacy")} />

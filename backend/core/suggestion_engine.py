@@ -23,6 +23,7 @@ from typing import Optional
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 
 from core import db as database
+from core.ai_models import resolve_model
 
 logger = logging.getLogger("lifeos")
 
@@ -138,11 +139,15 @@ async def generate_suggestion_payload(user_id: str) -> Optional[dict]:
         logger.warning("EMERGENT_LLM_KEY not configured — skipping suggestion generation")
         return None
 
+    pref = await database.preferences.find_one({"id": user_id}, {"_id": 0, "ai_prefs": 1})
+    model_key = ((pref or {}).get("ai_prefs") or {}).get("model")
+    model_option = resolve_model(model_key)
+
     chat = LlmChat(
         api_key=api_key,
         session_id=f"suggestion-{user_id}-{now_token()}",
         system_message=SYSTEM_PROMPT,
-    ).with_model("openai", "gpt-5.4")
+    ).with_model(model_option.provider, model_option.model)
 
     try:
         raw_text = await chat.send_message(UserMessage(text=json.dumps(context, default=str)))
