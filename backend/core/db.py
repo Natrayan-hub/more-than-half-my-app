@@ -18,6 +18,7 @@ projects = db.projects
 tasks = db.tasks
 health_entries = db.health_entries
 health_cache = db.health_cache  # only populated on explicit user opt-in (S34)
+gym_sets = db.gym_sets
 documents = db.documents
 document_pages = db.document_pages
 integrations = db.integrations
@@ -39,6 +40,7 @@ async def ensure_indexes() -> None:
     await tasks.create_index([("user_id", 1), ("due_at", 1)])
     await tasks.create_index([("user_id", 1), ("project_id", 1)])
     await health_entries.create_index([("user_id", 1), ("type", 1), ("logged_at", -1)])
+    await gym_sets.create_index([("user_id", 1), ("logged_at", -1)])
     await documents.create_index([("user_id", 1), ("category", 1)])
     await documents.create_index([("user_id", 1), ("kind", 1), ("created_at", -1)])
     await notifications.create_index([("user_id", 1), ("created_at", -1)])

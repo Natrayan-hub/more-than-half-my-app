@@ -105,6 +105,19 @@ export interface HealthCacheSample {
   readiness_input: boolean;
 }
 
+// ---- Gym (strength-training log) --------------------------------------------
+
+export type WeightUnit = "kg" | "lb";
+
+export interface GymSet extends Syncable {
+  exercise_name: string;
+  weight: number;
+  weight_unit: WeightUnit;
+  reps: number;
+  logged_at: ISODate;
+  note?: string | null;
+}
+
 // ---- Documents --------------------------------------------------------------
 
 export type DocumentCategory = "id" | "finance" | "medical" | "warranty" | "travel" | "other";

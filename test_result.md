@@ -570,14 +570,56 @@ frontend:
           the provider swap itself needs to be proven end-to-end, not
           just the settings UI.
 
+  - task: "Gym log (strength training): exercise name + weight + reps per set, history, weekly summary"
+    implemented: true
+    working: "NA"
+    file: "frontend/app/(tabs)/health/gym.tsx, frontend/app/(tabs)/health/index.tsx, frontend/src/features/gym/*, backend/models/gym.py, backend/routes/gym.py, backend/core/db.py"
+    stuck_count: 0
+    priority: high
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: main
+        comment: >
+          NEW feature (user-requested). User confirmed scope: BOTH body
+          weight (already existed as a HealthEntry type "weight" — no
+          changes there, unaffected) AND gym/lifting weight tracking (new),
+          kept simple: exercise name + weight + reps per set, no
+          multi-set/superset structure. Backend: new GymSet model (own
+          collection gym_sets, separate from HealthEntry since the shape
+          differs materially — exercise_name/weight/weight_unit/reps vs a
+          single numeric value), full CRUD at /api/gym/sets (GET list w/
+          from/to/exercise_name filters, POST create w/ validation —
+          reps>0, weight>=0, exercise_name required — PATCH, soft DELETE
+          matching the existing health.py pattern), GET /api/gym/exercises
+          (distinct previously-used exercise names, most-recent-first, for
+          autocomplete), GET /api/gym/summary (sets_this_week +
+          sessions_this_week for the Health tab card). Frontend: new
+          /health/gym screen (weekly summary card, "Log a set" CTA, history
+          grouped by day with tap-to-edit / trash-to-delete rows),
+          AddGymSetSheet (exercise name text input + up-to-6 recent-exercise
+          autocomplete chips, weight numeric input + kg/lb toggle, reps
+          +/- stepper 1-50), new tappable "Gym" summary card added to the
+          Health tab (below the existing water/mood/weight quick-log strip)
+          showing live sets-this-week count and linking to /health/gym.
+          tsc --noEmit and ESLint clean. Needs test: log a set, confirm it
+          appears in history grouped under "Today", edit it (tap row ->
+          sheet pre-fills -> change weight/reps -> save -> row updates),
+          delete it, confirm weekly summary count updates on the Health tab
+          card and inside /health/gym after each change, confirm exercise
+          name autocomplete chips populate after logging 2+ different
+          exercises, confirm existing body-weight tracking (Health tab
+          weight quick-log + /health/weight detail chart) still works
+          unaffected.
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 9
+  test_sequence: 10
 
 test_plan:
   current_focus:
-    - "AI Model selector (Settings): choose GPT-5.4 or Claude (Sonnet 5 / Sonnet 4.6 / Haiku 4.5) for the Today Suggestion engine"
+    - "Gym log (strength training): exercise name + weight + reps per set, history, weekly summary"
   stuck_tasks: []
   test_all: false
 

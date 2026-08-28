@@ -6,6 +6,7 @@ from models.base import SyncableModel, utcnow
 from models.user import User, Profile, Device
 from models.task import Project, Task
 from models.health import HealthEntry, HealthCacheSample
+from models.gym import GymSet
 from models.document import Document, DocumentPage
 from models.integration import Integration, IntegrationToken
 from models.ai import AIMemoryEntry, Suggestion
@@ -19,6 +20,7 @@ __all__ = [
     "User", "Profile", "Device",
     "Project", "Task",
     "HealthEntry", "HealthCacheSample",
+    "GymSet",
     "Document", "DocumentPage",
     "Integration", "IntegrationToken",
     "AIMemoryEntry", "Suggestion",

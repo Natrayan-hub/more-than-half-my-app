@@ -6,11 +6,12 @@
 // so the numbers never disagree).
 import { useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
-import { Feather } from "@expo/vector-icons";
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { RefreshControl, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { TopBar } from "@/src/components/TopBar";
 import { useToast } from "@/src/components/Toast";
+import { fetchGymSummary } from "@/src/features/gym/api";
 import { fetchHealthEntries, fromIsoForRange } from "@/src/features/health/api";
 import { ManualLogSheet } from "@/src/features/health/ManualLogSheet";
 import { ManualQuickLogStrip } from "@/src/features/health/ManualQuickLogStrip";
@@ -44,6 +45,7 @@ export default function HealthScreen() {
     fetchHealthEntries({ type: "mood", fromIso: fromIsoForRange("30d") }));
   const weightData = useCardData<HealthEntry[]>("health.weight.30d", () =>
     fetchHealthEntries({ type: "weight", fromIso: fromIsoForRange("30d") }));
+  const gymSummaryData = useCardData("health.gym.summary", fetchGymSummary);
 
   const readiness = useMemo(() => getMockReadiness(), []);
 
@@ -156,9 +158,32 @@ export default function HealthScreen() {
           onQuickAdd={(type) => setLogSheet({ visible: true, type })}
         />
 
+        <TouchableOpacity
+          onPress={() => router.push("/health/gym")}
+          accessibilityRole="button"
+          accessibilityLabel="Gym log, open detail"
+          style={[
+            styles.gymCard, theme.elevation.e1,
+            { backgroundColor: theme.colors.surface.default, borderRadius: theme.radius.md },
+          ]}
+        >
+          <View style={[styles.gymIcon, { backgroundColor: theme.colors.surface.primarySubtle, borderRadius: theme.radius.xs }]}>
+            <MaterialCommunityIcons name="dumbbell" size={18} color={theme.colors.primary.subtleText} />
+          </View>
+          <View style={styles.gymTextCol}>
+            <Text style={[theme.type.h4, { color: theme.colors.text.primary }]}>Gym</Text>
+            <Text style={[theme.type.caption, { color: theme.colors.text.secondary }]}>
+              {gymSummaryData.loading
+                ? "Loading…"
+                : `${gymSummaryData.data?.sets_this_week ?? 0} set${gymSummaryData.data?.sets_this_week === 1 ? "" : "s"} logged this week`}
+            </Text>
+          </View>
+          <Feather name="chevron-right" size={18} color={theme.colors.text.tertiary} />
+        </TouchableOpacity>
+
         <Text style={[theme.type.caption, styles.footer, { color: theme.colors.text.tertiary }]}>
           Sleep, steps, heart rate, active energy &amp; workouts are sample data — connect Apple Health
-          or Health Connect to see yours. Water, mood &amp; weight are your real logs, synced to your account.
+          or Health Connect to see yours. Water, mood, weight &amp; gym sets are your real logs, synced to your account.
         </Text>
       </ScrollView>
 
@@ -187,6 +212,9 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
+  gymCard: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14 },
+  gymIcon: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
+  gymTextCol: { flex: 1, gap: 1 },
   offlineBanner: {
     flexDirection: "row",
     alignItems: "center",
